@@ -1,0 +1,54 @@
+---
+- name: Install PostgreSQL
+  hosts: all
+  remote_user: root
+
+  vars:
+    distr_url: "https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-7-x86_64"
+    pg_version: "10.5"
+    pgdata: "/opt/pgdata1"
+    packages: [postgresql10-10.5-1PGDG.rhel7.x86_64.rpm,postgresql10-libs-10.5-1PGDG.rhel7.x86_64.rpm, postgresql10-server-10.5-1PGDG.rhel7.x86_64.rpm, postgresql10-contrib-10.5-1PGDG.rhel7.x86_64.rpm]
+    service_name: db1
+  tasks:
+
+    - name: Install packages
+      yum:
+        name: "{{ distr_url }}/{{ item }}"
+        state: present
+      with_items: "{{ packages }}"
+
+    - name: Create PGDATA
+      file:
+        path: "{{ pgdata }}"
+        state: directory
+        owner: postgres
+        group: postgres
+
+    - name: Initialize cluster
+      shell: "/usr/pgsql-10/bin/initdb -D {{ pgdata }}"
+      become: yes
+      become_user: postgres
+
+    - name: Copy a systemd-file
+      copy:
+        src: "/usr/lib/systemd/system/postgresql-10.service"
+        dest: "/etc/systemd/system/pg_{{ service_name }}.service"
+        remote_src: yes
+
+    - lineinfile:
+        path: "/etc/systemd/system/pg_{{ service_name }}.service"
+        regexp: '^Environment=PGDATA='
+        line: "Environment=PGDATA={{ pgdata }}"
+
+    - name: mask default systemd-file pg
+      systemd:
+        name: postgresql-10.service
+        masked: yes
+
+    - name: Start and enable service pg
+      systemd:
+        name: pg_{{ service_name }}.service
+        state: started
+        enabled: yes
+        daemon_reload: yes
+        
