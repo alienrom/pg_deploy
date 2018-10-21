@@ -4,10 +4,15 @@
   remote_user: root
 
   vars:
-    distr_url: "https://download.postgresql.org/pub/repos/yum/10/redhat/rhel-7-x86_64"
-    pg_version: "10.5"
+    pg_version_major: 11  #10
+    pg_version_minor: 0   #5
+    distr_url: "https://download.postgresql.org/pub/repos/yum/{{ pg_version_major }}/redhat/rhel-7-x86_64"
     pgdata: "/opt/pgdata1"
-    packages: [postgresql10-10.5-1PGDG.rhel7.x86_64.rpm,postgresql10-libs-10.5-1PGDG.rhel7.x86_64.rpm, postgresql10-server-10.5-1PGDG.rhel7.x86_64.rpm, postgresql10-contrib-10.5-1PGDG.rhel7.x86_64.rpm]
+    packages: 
+      - postgresql{{pg_version_major}}-{{pg_version_major}}.{{pg_version_minor}}-1PGDG.rhel7.x86_64.rpm
+      - postgresql{{pg_version_major}}-libs-{{pg_version_major}}.{{pg_version_minor}}-1PGDG.rhel7.x86_64.rpm
+      - postgresql{{pg_version_major}}-server-{{pg_version_major}}.{{pg_version_minor}}-1PGDG.rhel7.x86_64.rpm
+      - postgresql{{pg_version_major}}-contrib-{{pg_version_major}}.{{pg_version_minor}}-1PGDG.rhel7.x86_64.rpm
     service_name: db1
   tasks:
 
@@ -25,13 +30,13 @@
         group: postgres
 
     - name: Initialize cluster
-      shell: "/usr/pgsql-10/bin/initdb -D {{ pgdata }}"
+      shell: "/usr/pgsql-{{pg_version_major}}/bin/initdb -D {{ pgdata }}"
       become: yes
       become_user: postgres
 
     - name: Copy a systemd-file
       copy:
-        src: "/usr/lib/systemd/system/postgresql-10.service"
+        src: "/usr/lib/systemd/system/postgresql-{{pg_version_major}}.service"
         dest: "/etc/systemd/system/pg_{{ service_name }}.service"
         remote_src: yes
 
